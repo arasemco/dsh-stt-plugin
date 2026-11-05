@@ -1,0 +1,24 @@
+{
+  "name": "dsh-plugin-stt",
+  "description": "Talk instead of typing: local speech-to-text for the Web GUI, transcribed on the Host with SenseVoice",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "README.md"
+  ],
+  "dsh": {
+    "client": {
+      "platform": "web"
+    }
+  },
+  "license": "MIT"
+}
