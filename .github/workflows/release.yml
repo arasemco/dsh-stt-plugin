@@ -1,60 +1,39 @@
 name: Release
 
-# Every push to main derives the next semver from the commits since the last
-# tag, bumps package.json, tags that commit, then builds and publishes the
-# tarball. Bump, tag and release live in one workflow on purpose: a push made
-# with the default GITHUB_TOKEN does not trigger another workflow.
+# One responsibility: publish the GitHub release for the tag on main. Triggered
+# by the Version run completing, because a tag pushed with GITHUB_TOKEN emits no
+# push event of its own.
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows:
+      - Version
+    types:
+      - completed
 
 permissions:
   contents: write
 
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   release:
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Next version
-        id: next
-        run: ./scripts/next-version.sh >> "$GITHUB_OUTPUT"
-      # The package has no runtime dependencies; the suites need this harness.
-      - name: Test
-        if: steps.next.outputs.bump != 'none'
-        env:
-          NODE_ENV: development
+      - name: Read the tag on main
+        id: tag
         run: |
-          npm install --no-save --no-package-lock react@18 react-dom@18 jsdom
-          node --test test/client.test.mjs test/host.test.mjs
-      # [skip ci] keeps the bump push from starting this workflow again.
-      - name: Bump, commit, tag
-        if: steps.next.outputs.bump != 'none'
-        env:
-          TAG: v${{ steps.next.outputs.version }}
-        run: |
-          npm version "${{ steps.next.outputs.version }}" --no-git-tag-version
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "chore(release): ${TAG} [skip ci]"
-          git tag -a "${TAG}" -m "${TAG}"
-          git push origin HEAD:main
-          git push origin "${TAG}"
+          tag="$(git describe --tags --exact-match)"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "release ${tag}"
       - name: Build tarball
-        if: steps.next.outputs.bump != 'none'
         run: npm pack
       - name: Record tarball SHA-256
-        if: steps.next.outputs.bump != 'none'
         run: |
           echo '### Tarball SHA-256' >> "$GITHUB_STEP_SUMMARY"
           echo '```text' >> "$GITHUB_STEP_SUMMARY"
@@ -62,9 +41,8 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           sha256sum *.tgz
       - name: Create release
-        if: steps.next.outputs.bump != 'none'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.next.outputs.version }}
+          tag_name: ${{ steps.tag.outputs.tag }}
           generate_release_notes: true
           files: '*.tgz'
