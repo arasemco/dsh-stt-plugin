@@ -1,7 +1,7 @@
 {
   "name": "dsh-plugin-stt",
   "description": "Talk instead of typing: local speech-to-text for the Web GUI, transcribed on the Host with SenseVoice",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "type": "module",
   "main": "lib/index.js",
