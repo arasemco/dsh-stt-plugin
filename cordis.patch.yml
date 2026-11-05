@@ -1,0 +1,6 @@
+# The layer this bundle contributes to a profile. Installing the package with
+# `dsh plugin --profile <name> add dsh-plugin-stt` composes this row, so the
+# plugin is active without hand-editing the profile's own patch file.
+- insert:
+    - id: stt
+      name: dsh-plugin-stt
